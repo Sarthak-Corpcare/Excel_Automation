@@ -2,13 +2,13 @@ import openpyxl
 from datetime import datetime
 import sys
 
-# --- CONFIGURATION ---
+
 raw_file = "Daily Performance RAW.xlsx"
 template_file = "Daily Performance Sheet - 05 Aug 2025.xlsx"
 output_file = "Daily Performance - Filled.xlsx"
 SHEETS_TO_IGNORE = ['Home', 'Sheet1']
 
-# --- MAPPING DICTIONARIES ---
+
 RAW_HEADER_TO_STANDARD_NAME = {
     "Scheme Name": "Scheme Name",
     "Month End": "Month End",
@@ -170,7 +170,8 @@ for sheet_name in raw_wb.sheetnames:
         total_rows_written += 1
     print(f"Wrote {rows_on_this_sheet} rows of data to sheet '{sheet_name}'.")
 
-# --- Final Save ---
+
 print(f"Total rows written across all sheets: {total_rows_written}")
 template_wb.save(output_file)
+
 print(f"Success! Data transferred and saved to {output_file}")
