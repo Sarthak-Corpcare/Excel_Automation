@@ -19,11 +19,12 @@ RAW_TO_TEMPLATE_HEADER_MAP = {
     "A / A+ / A1+ / A1-": "A / A+ / A1+ / A1-",
     "AA / AA+ / AA-": "AA / AA+ / AA-", "AAA": "AAA", "Unrated": "Unrated", "D": "D", "A1+ / A1-": "A1+ / A1-",
     "Exit Load": "Exit Load", "Remark": "Remark", "Inception Date": "Inception Date",
-    "[Fund Manager 1]": "[Fund Manager 1]",
+    "[Fund Manager 1]": "Fund Manager",
 }
 MONTH_GROUPED_HEADERS = ["Average Maturity Years", "Modified Duration Years", "YTM (%)", "Direct Expense Ratio",
                          "Cash & Equivalent", "Others", "SOV", "A / A+ / A1+ / A1-", "AA / AA+ / AA-", "AAA", "Unrated",
                          "D", "A1+ / A1-"]
 
 RATING_HEADERS = ["A / A+ / A-", "AA / AA+ / AA-", "A / A+ / A1+ / A1-","AAA","A1 / A1+ / A1-", "Cash & Equivalent","D","Others","SOV", "Unrated"]
+
 
