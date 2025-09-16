@@ -103,6 +103,53 @@ def create_styled_homepage(workbook,SHEETS_TO_IGNORE,LOGO_FILENAME):
     print("Styled homepage created successfully.")
 
 
+def format_and_legend(template_sheet, data_header_row_template, start_row_template, rows_on_this_sheet, aum_dest_col,
+                      any_older_data_used,older_date_for_legend,older_month_id):
+    if aum_dest_col:
+        try:
+            template_sheet.merge_cells(start_row=data_header_row_template - 2, end_row=data_header_row_template - 1,
+                                       start_column=aum_dest_col, end_column=aum_dest_col)
+            corpus_cell = template_sheet.cell(row=data_header_row_template - 2, column=aum_dest_col)
+            corpus_cell.value = "Corpus"
+            corpus_cell.alignment = center_align
+            template_sheet.cell(row=data_header_row_template, column=aum_dest_col).value = "AUM (Cr.)"
+        except Exception as e:
+            print(f" Warning: could not merge Corpus header: {e}")
+
+    if any_older_data_used:
+        older_date_str = older_date_for_legend.strftime('%d-%b-%Y') if older_date_for_legend else (
+                older_month_id and datetime.strptime(str(older_month_id), "%Y%m").strftime("%b-%Y"))
+        if older_date_str:
+            legend_row = start_row_template + rows_on_this_sheet + 2
+            template_sheet.cell(row=legend_row, column=1).fill = light_brown_fill
+            template_sheet.column_dimensions['A'].width = 5
+            template_sheet.cell(row=legend_row, column=2).value = f"Indicates data as of {older_date_str}"
+            template_sheet.cell(row=legend_row, column=2).font = Font(bold=True)
+
+    # --- HOME BUTTON ---
+    back_button = template_sheet['A2']
+    back_button.value = "Home"
+    back_button.hyperlink = f"#'Home'!A1"
+    back_button.font = back_button_font
+    back_button.fill = back_button_fill
+    back_button.alignment = center_align
+    back_button.border = button_border
+    template_sheet.column_dimensions['A'].width = 50
+
+
+def remove_benchmark(template_sheet,data_header_row_template):
+
+    # --- TEMPLATE SHEET ---
+    if (benchmark_row := next((r for r in range(1, template_sheet.max_row + 2) if
+                               str(template_sheet.cell(row=r, column=1).value).strip().lower() == "benchmark"), None)):
+        template_sheet.delete_rows(benchmark_row, template_sheet.max_row - benchmark_row + 2)
+        print("    Benchmark table removed.")
+    clear_from = data_header_row_template + 1
+    if template_sheet.max_row >= clear_from:
+        for row in template_sheet.iter_rows(min_row=clear_from):
+            if not row[0].value or str(row[0].value).strip() == "": break
+            for cell in row: cell.value = None
+
 
 def process_sheet(raw_wb, template_wb, SHEETS_TO_IGNORE):
 
@@ -118,9 +165,11 @@ def process_sheet(raw_wb, template_wb, SHEETS_TO_IGNORE):
 
         update_as_on_date(template_sheet)
         data_header_row_raw = find_header_row(raw_sheet)
-        if data_header_row_raw == -1: continue
+        if data_header_row_raw == -1:
+            continue
         data_header_row_template = find_header_row(template_sheet)
-        if data_header_row_template == -1: continue
+        if data_header_row_template == -1:
+            continue
         # --- SOURCE COLUMNS ---
         header_row_str = str(data_header_row_raw)
         # Hardcode the latest AUM to column C and the older AUM to column B.
@@ -139,29 +188,20 @@ def process_sheet(raw_wb, template_wb, SHEETS_TO_IGNORE):
 
         raw_date_columns_by_parent = {}
         for col, cell in enumerate(raw_sheet[data_header_row_raw], 1):
-            if (date_v := is_date_like(cell.value)):
+            if date_v := is_date_like(cell.value):
                 parent = get_parent_header_for_column(raw_sheet, data_header_row_raw, col) or "(unknown parent)"
                 raw_date_columns_by_parent.setdefault(parent, []).append((col, date_v))
         for p, lst in raw_date_columns_by_parent.items():
             raw_date_columns_by_parent[p] = sorted(lst, key=lambda t: t[1], reverse=True)
 
-        # --- DESTINATION COLUMNS ---
         dest_col_map = {str(c.value).strip(): c.column for c in template_sheet[data_header_row_template] if c.value}
         aum_dest_col = next(
-            (c.column for r in range(data_header_row_template - 2, data_header_row_template + 1) for c in template_sheet[r]
-             if "AUM" in str(c.value)), None)
+            (c.column for r in range(data_header_row_template - 2, data_header_row_template + 1) for c in
+             template_sheet[r] if "AUM" in str(c.value)), None)
 
-        # --- TEMPLATE SHEET ---
-        if (benchmark_row := next((r for r in range(1, template_sheet.max_row + 2) if
-                                   str(template_sheet.cell(row=r, column=1).value).strip().lower() == "benchmark"), None)):
-            template_sheet.delete_rows(benchmark_row, template_sheet.max_row - benchmark_row + 2)
-            print("    Benchmark table removed.")
-        clear_from = data_header_row_template + 1
-        if template_sheet.max_row >= clear_from:
-            for row in template_sheet.iter_rows(min_row=clear_from):
-                if not row[0].value or str(row[0].value).strip() == "": break
-                for cell in row: cell.value = None
+        remove_benchmark(template_sheet,data_header_row_template)
 
+        # --- DESTINATION COLUMNS ---
         # --- WRITING DATA ROW BY ROW ---
         start_row_template = data_header_row_template + 1
         rows_on_this_sheet = 0
@@ -186,58 +226,15 @@ def process_sheet(raw_wb, template_wb, SHEETS_TO_IGNORE):
             total_rows_written += 1
             rows_on_this_sheet += 1
         print(f" Wrote {rows_on_this_sheet} rows of new data.")
+        print(f"\nTotal rows written across all sheets: {total_rows_written}")
 
         # --- FORMAT & LEGEND ---
-        if aum_dest_col:
-            try:
-                template_sheet.merge_cells(start_row=data_header_row_template - 2, end_row=data_header_row_template - 1,
-                                           start_column=aum_dest_col, end_column=aum_dest_col)
-                corpus_cell = template_sheet.cell(row=data_header_row_template - 2, column=aum_dest_col)
-                corpus_cell.value = "Corpus"
-                corpus_cell.alignment = center_align
-                template_sheet.cell(row=data_header_row_template, column=aum_dest_col).value = "AUM (Cr.)"
-            except Exception as e:
-                print(f" Warning: could not merge Corpus header: {e}")
-
-
-        # writer(data_header_row_template, raw_date_columns_by_parent, data_header_row_raw, raw_sheet)
-
-        if any_older_data_used:
-            older_date_str = older_date_for_legend.strftime('%d-%b-%Y') if older_date_for_legend else (
-                    older_month_id and datetime.strptime(str(older_month_id), "%Y%m").strftime("%b-%Y"))
-            if older_date_str:
-                legend_row = start_row_template + rows_on_this_sheet + 2
-                template_sheet.cell(row=legend_row, column=1).fill = light_brown_fill
-                template_sheet.column_dimensions['A'].width = 5
-                template_sheet.cell(row=legend_row, column=2).value = f"Indicates data as of {older_date_str}"
-                template_sheet.cell(row=legend_row, column=2).font = Font(bold=True)
-
-        # --- HOME BUTTON ---
-        back_button = template_sheet['A2']
-        back_button.value = "Home"
-        back_button.hyperlink = f"#'Home'!A1"
-        back_button.font = back_button_font
-        back_button.fill = back_button_fill
-        back_button.alignment = center_align
-        back_button.border = button_border
-        template_sheet.column_dimensions['A'].width = 50
-
-
-
-
-# def writer(data_header_row_template,raw_date_columns_by_parent,data_header_row_raw,raw_sheet):
-# --- WRITING DATA ROW BY ROW ---
-
-
-            # A) Process all standard columns
-
+        format_and_legend(template_sheet, data_header_row_template, start_row_template, rows_on_this_sheet, aum_dest_col,
+                      any_older_data_used,older_date_for_legend,older_month_id)
 
 def handling_standard_column(dest_col_map,raw_col_map,raw_sheet,row_num,latest_month_id,older_month_id,any_older_data_used,
                              template_sheet,template_row_index):
 
-
-    print(any_older_data_used)
-# A1) Handle standard columns (non-rating)
     for raw_h, tpl_h in RAW_TO_TEMPLATE_HEADER_MAP.items():
         if tpl_h in dest_col_map and tpl_h not in ["AAA", "AA / AA+ / AA-", "A / A+ / A1+ / A1-", "D", "Unrated",
                                                    "Cash & Equivalent", "Others", "SOV"]:
@@ -263,7 +260,6 @@ def handling_standard_column(dest_col_map,raw_col_map,raw_sheet,row_num,latest_m
                     final_value = older_val
                     is_older = True
                     any_older_data_used = True
-                    print(any_older_data_used)
 
             if final_value is None and static_col:
                 final_value = raw_sheet.cell(row=row_num, column=static_col).value
@@ -274,11 +270,9 @@ def handling_standard_column(dest_col_map,raw_col_map,raw_sheet,row_num,latest_m
                 dest_cell.fill = light_brown_fill if is_older else no_fill
 
 
-
 def handling_rating_allocation(raw_col_map,latest_month_id,raw_sheet,row_num,dest_col_map,older_month_id,
                                any_older_data_used ,template_sheet,template_row_index):
 # A2) Handle rating allocation block (special rule)
-    print(any_older_data_used)
 # Step 1: check if latest has *any* rating filled
     latest_has_any = False
     latest_vals = {}
@@ -313,7 +307,7 @@ def handling_rating_allocation(raw_col_map,latest_month_id,raw_sheet,row_num,des
                     final_val = val
                     is_older = True
                     any_older_data_used = True
-                    print(any_older_data_used)
+
 
         dest_cell = template_sheet.cell(row=template_row_index, column=dest_col)
         dest_cell.value = final_val
@@ -323,12 +317,10 @@ def handling_AUM(aum_dest_col,latest_aum_col_raw,older_aum_col_raw,raw_sheet,row
 # B) AUM
     if aum_dest_col:
         aum_value, aum_is_older = None, False
-        # print(f"      - AUM Processing:")
 
         # Check Latest
         if latest_aum_col_raw:
             val = raw_sheet.cell(row=row_num, column=latest_aum_col_raw).value
-            # print(f"        > Checking LATEST AUM (col {latest_aum_col_raw})... Found: '{val}'")
             if is_meaningful_data(val):
                 aum_value = val
 
@@ -339,22 +331,16 @@ def handling_AUM(aum_dest_col,latest_aum_col_raw,older_aum_col_raw,raw_sheet,row
                 val = raw_sheet.cell(row=row_num, column=older_aum_col_raw).value
                 print(f"        > LATEST was empty. Checking OLDER AUM (col {older_aum_col_raw})... Found: '{val}'")
 
-                # print(all_raw_aum_cells, len(all_raw_aum_cells))
                 print(latest_aum_col_raw)
                 print(older_aum_col_raw)
                 if is_meaningful_data(val):
                     aum_value = val
                     aum_is_older = True
                     any_older_data_used = True
-                    print(any_older_data_used)
-            # else:
-                # print(f"        > LATEST was empty and NO OLDER AUM column to check.")
 
         dest_cell = template_sheet.cell(row=template_row_index, column=aum_dest_col)
         dest_cell.value = aum_value
         dest_cell.fill = light_brown_fill if aum_is_older else no_fill
-        # print(
-        #     f"        -> FINAL AUM ACTION: Wrote value '{aum_value}'. Coloring: {'YES' if aum_is_older else 'NO'}.")
 
 def handle_expense_ration(exp_dates,dest_col_map,raw_sheet,row_num,template_sheet,template_row_index):
 # C) Historical Expense Ratio
@@ -369,18 +355,12 @@ def handle_expense_ration(exp_dates,dest_col_map,raw_sheet,row_num,template_shee
             her_value = val
             her_is_older = True
             any_older_data_used = True
-            print(any_older_data_used)
+
         dest_cell = template_sheet.cell(row=template_row_index, column=dest_col)
         dest_cell.value = her_value
         dest_cell.fill = light_brown_fill if her_is_older else no_fill
 
-
-
-
-# --- FINAL HOMEPAGE ---
-
 # --- MAIN SCRIPT ---
-
 def main(raw_file,SHEETS_TO_IGNORE,LOGO_FILENAME):
 
     print("Starting Data Transfer")
@@ -403,10 +383,8 @@ def main(raw_file,SHEETS_TO_IGNORE,LOGO_FILENAME):
         disclaimer_sheet.sheet_view.showGridLines = False
         print("Hid gridlines on the Disclaimer sheet.")
 
-    # print(f"\nTotal rows written across all sheets: {total_rows_written}")
     template_wb.save(output_file)
     print(f"Success! Data transferred and saved to {output_file}")
-
 
 if __name__ == "__main__":
     main(raw_file,SHEETS_TO_IGNORE,LOGO_FILENAME)
