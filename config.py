@@ -1,5 +1,3 @@
-
-
 raw_file = "Daily Performance - Testing.xlsx"
 template_file = "Daily Performance Template.xlsx"
 output_file = "Daily Performance - Filled.xlsx"
@@ -28,3 +26,4 @@ MONTH_GROUPED_HEADERS = ["Average Maturity Years", "Modified Duration Years", "Y
                          "D", "A1+ / A1-"]
 
 RATING_HEADERS = ["A / A+ / A-", "AA / AA+ / AA-", "A / A+ / A1+ / A1-","AAA","A1 / A1+ / A1-", "Cash & Equivalent","D","Others","SOV", "Unrated"]
+
