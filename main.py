@@ -1,4 +1,7 @@
 import openpyxl
+import tempfile
+import streamlit as st
+import time
 from datetime import datetime
 import sys
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
@@ -8,6 +11,9 @@ from config import RAW_TO_TEMPLATE_HEADER_MAP, MONTH_GROUPED_HEADERS, LOGO_FILEN
     template_file, output_file, RATING_HEADERS, SHEETS_TO_IGNORE
 from helper import update_as_on_date, find_header_row, get_month_id_for_column, is_date_like, \
     get_parent_header_for_column, is_meaningful_data
+
+
+
 
 
 # --- GLOBAL STYLES ---
@@ -361,7 +367,7 @@ def handle_expense_ration(exp_dates,dest_col_map,raw_sheet,row_num,template_shee
         dest_cell.fill = light_brown_fill if her_is_older else no_fill
 
 # --- MAIN SCRIPT ---
-def main(raw_file,SHEETS_TO_IGNORE,LOGO_FILENAME):
+def main(raw_file,output_file,SHEETS_TO_IGNORE,LOGO_FILENAME):
 
     print("Starting Data Transfer")
     try:
@@ -385,9 +391,28 @@ def main(raw_file,SHEETS_TO_IGNORE,LOGO_FILENAME):
 
     template_wb.save(output_file)
     print(f"Success! Data transferred and saved to {output_file}")
+    return output_file
+
+# if __name__ == "__main__":
+#     main(raw_file,SHEETS_TO_IGNORE,LOGO_FILENAME)
+
 
 if __name__ == "__main__":
-    main(raw_file,SHEETS_TO_IGNORE,LOGO_FILENAME)
+    st.title("Excel Data Transfer Tool")
+    st.write("This tool transfers data from a raw Excel file to a formatted template Excel file.")
+    uploaded_file = st.file_uploader("Upload Raw Excel File", type=["xlsx"])
 
-
-
+    if uploaded_file:
+        if st.button("process file"):
+            with st.spinner("Processing the Excel ... , Please wait "):
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_output:
+                    main(raw_file=uploaded_file,output_file=tmp_output.name,SHEETS_TO_IGNORE=SHEETS_TO_IGNORE,LOGO_FILENAME=LOGO_FILENAME)
+                    with open(tmp_output.name, "rb") as f:
+                        file_bytes=f.read()
+                        st.success("Processing Completed!")
+                        st.download_button(
+                            label="Download Processed Excel",
+                            data=file_bytes,
+                            file_name="performance_sheet.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
