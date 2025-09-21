@@ -54,8 +54,10 @@ def create_styled_homepage(workbook,SHEETS_TO_IGNORE,LOGO_FILENAME):
         home_sheet.add_image(img, 'A1')
         text_cell = home_sheet['A7']
         text_cell.value = "CorpCare Investment Advisory Pvt Ltd."
+        text_cell.font=Font(bold=True)
         text_cell = home_sheet['A8']
         text_cell.value = "RIA : INA000018249"
+        text_cell.font = Font(bold=True)
     except FileNotFoundError:
         print(f" WARNING: Logo file '{LOGO_FILENAME}' not found.")
 
@@ -416,3 +418,4 @@ if __name__ == "__main__":
                             file_name="performance_sheet.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
+
