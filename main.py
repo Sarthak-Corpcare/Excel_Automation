@@ -14,7 +14,7 @@ from helper import update_as_on_date, find_header_row, get_month_id_for_column, 
 
 
 
-
+today_str = datetime.now().strftime("%d-%B-%Y")
 
 # --- GLOBAL STYLES ---
 light_brown_fill = PatternFill(start_color="DCC7A3", end_color="DCC7A3", fill_type="solid")
@@ -110,6 +110,23 @@ def create_styled_homepage(workbook,SHEETS_TO_IGNORE,LOGO_FILENAME):
     for i in range(2, 20): home_sheet.column_dimensions[get_column_letter(i)].width = 12
     print("Styled homepage created successfully.")
 
+
+def auto_fit_columns(sheet):
+    """
+    Adjusts the column width of a sheet to fit the longest content in each column.
+    """
+    column_widths = {}
+    for row in sheet.iter_rows():
+        for cell in row:
+            if cell.value:
+                cell_len = len(str(cell.value)) + 2
+                # Storing the maximum length found for this column
+                if cell.column_letter not in column_widths or cell_len > column_widths[cell.column_letter]:
+                    column_widths[cell.column_letter] = cell_len
+
+    for col_letter, width in column_widths.items():
+        sheet.column_dimensions[col_letter].width = min(width, 22)
+        
 
 def format_and_legend(template_sheet, data_header_row_template, start_row_template, rows_on_this_sheet, aum_dest_col,
                       any_older_data_used,older_date_for_legend,older_month_id):
@@ -243,6 +260,7 @@ def process_sheet(raw_wb, template_wb, SHEETS_TO_IGNORE):
 def handling_standard_column(dest_col_map,raw_col_map,raw_sheet,row_num,latest_month_id,older_month_id,any_older_data_used,
                              template_sheet,template_row_index):
 
+    auto_fit_columns(template_sheet)
     for raw_h, tpl_h in RAW_TO_TEMPLATE_HEADER_MAP.items():
         if tpl_h in dest_col_map and tpl_h not in ["AAA", "AA / AA+ / AA-", "A / A+ / A1+ / A1-", "D", "Unrated",
                                                    "Cash & Equivalent", "Others", "SOV"]:
@@ -418,4 +436,5 @@ if __name__ == "__main__":
                             file_name="performance_sheet.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
+
 
