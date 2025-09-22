@@ -433,8 +433,9 @@ if __name__ == "__main__":
                         st.download_button(
                             label="Download Processed Excel",
                             data=file_bytes,
-                            file_name="performance_sheet.xlsx",
+                            file_name=f"Daily Performance Report {today_str}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
+
 
 
