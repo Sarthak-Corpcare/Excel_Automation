@@ -39,7 +39,7 @@ def create_styled_homepage(workbook,SHEETS_TO_IGNORE,LOGO_FILENAME):
 
     # Define styles locally for this function
     title_font = Font(name='Calibri', size=14, bold=True)
-    date_font = Font(name='Calibri', size=11, color="003366")
+    date_font = Font(name='Calibri', size=11, color="000000",bold=True)
 
     button_font_ui = Font(name='Calibri', size=11, color="000000", bold=True, underline=None)
 
@@ -436,6 +436,7 @@ if __name__ == "__main__":
                             file_name=f"Daily Performance Report {today_str}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
+
 
 
 
